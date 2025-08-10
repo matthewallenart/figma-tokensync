@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Styles & Variables Exporter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    body {
+      margin: 0;
+      padding: 16px;
+      font-size: 13px;
+      background: #151515;
+      color: #ffffff;
+      font-weight: 400;
+    }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 30px;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .export-options {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .option-group {
+      margin-bottom: 16px;
+    }
+
+    .option-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .option-label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 11px;
+      flex-wrap: wrap;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      appearance: none;
+      border: 1px solid #ffffff;
+      border-radius: 50%;
+      background: transparent;
+      position: relative;
+      cursor: pointer;
+    }
+
+    input[type="radio"]:checked {
+      background: #cc34b3;
+      border-color: #cc34b3;
+    }
+
+    input[type="radio"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      appearance: none;
+      border: 1px solid #ffffff;
+      border-radius: 4px;
+      background: transparent;
+      position: relative;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"]:checked {
+      background: #cc34b3;
+      border-color: #cc34b3;
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    label {
+      font-size: 11px;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    button {
+      background: linear-gradient(135deg, #cc34b3, #8b5cf6);
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 8px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .secondary-button {
+      background: transparent;
+      color: #cc34b3;
+      border: 1px solid #ffffff;
+    }
+
+    .preview {
+      background: transparent;
+      border: 1px solid #ffffff;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px;
+      max-height: 129px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #ffffff;
+      line-height: 1.4;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top: 2px solid #cc34b3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 11px;
+      margin-bottom: 16px;
+    }
+
+    .stat-item {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      padding: 16px 8px;
+      text-align: center;
+      height: 59px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-number {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #cc34b3, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2px;
+      line-height: 30px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #ffffff;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 11px;
+    }
+
+    .button-row button {
+      flex: 1;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Styles & Variables Exporter</div>
+    <div class="subtitle">Export your figma styles and variables to JSON or code format</div>
+  </div>
+
+  <div id="loading-state" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <span>Extracting data...</span>
+  </div>
+
+  <div id="main-content">
+    <div class="export-options">
+      <div class="option-group">
+        <div class="option-label">Preview:</div>
+        <div class="radio-group">
+          <div class="radio-item">
+            <input type="radio" id="format-json" name="format" value="json" checked>
+            <label for="format-json">JSON</label>
+          </div>
+          <div class="radio-item">
+            <input type="radio" id="format-css" name="format" value="css">
+            <label for="format-css">CSS Variables</label>
+          </div>
+          <div class="radio-item">
+            <input type="radio" id="format-js" name="format" value="js">
+            <label for="format-js">JavaScript</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="option-group">
+        <div class="option-label">Include:</div>
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="include-styles" checked>
+            <label for="include-styles">Styles (Colors, Text, Effects, Grids)</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="include-variables" checked>
+            <label for="include-variables">Variables</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="include-metadata" checked>
+            <label for="include-metadata">Metadata</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button id="export-btn">Scan file</button>
+    
+    <div id="results" style="display: none;">
+      <div id="stats" class="stats"></div>
+      <div style="margin-bottom: 16px;">
+        <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px;">Preview:</div>
+        <div id="preview" class="preview"></div>
+      </div>
+      <div class="button-row">
+        <button id="copy-btn" class="secondary-button">Copy to Clipboard</button>
+        <button id="download-btn" class="secondary-button">Download JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var exportedData = null;
+    var processedOutput = '';
+
+    function formatData(data, format, options) {
+      var output = {};
+      if (options.includeStyles) output.styles = data.styles;
+      if (options.includeVariables) output.variables = data.variables;
+      if (options.includeMetadata) output.metadata = data.metadata;
+
+      switch (format) {
+        case 'json': return JSON.stringify(output, null, 2);
+        case 'css': return generateCSS(output);
+        case 'js': return generateJavaScript(output);
+        default: return JSON.stringify(output, null, 2);
+      }
+    }
+
+    function generateCSS(data) {
+      var css = ':root {\n';
+      if (data.styles && data.styles.colors) {
+        css += '  /* Color Styles */\n';
+        for (var i = 0; i < data.styles.colors.length; i++) {
+          var color = data.styles.colors[i];
+          if (color.type === 'solid') {
+            css += '  --' + color.token + ': ' + color.hex + ';\n';
+          } else if (color.css) {
+            css += '  --' + color.token + ': ' + color.css + ';\n';
+          }
+        }
+      }
+      css += '}';
+      return css;
+    }
+
+    function generateJavaScript(data) {
+      return '// Figma Export\nexport const designTokens = ' + JSON.stringify(data, null, 2) + ';';
+    }
+
+    function updateStats(data) {
+      var stats = document.getElementById('stats');
+      var totalStyles = (data.styles.colors || []).length + (data.styles.textStyles || []).length;
+      var totalVariables = (data.variables.colors || []).length + (data.variables.numbers || []).length;
+      
+      stats.innerHTML = 
+        '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalStyles + '</div><div class="stat-label">Styles</div></div></div>' +
+        '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalVariables + '</div><div class="stat-label">Variables</div></div></div>';
+    }
+
+    function processAndDisplay() {
+      if (!exportedData) return;
+      var format = document.querySelector('input[name="format"]:checked').value;
+      var options = {
+        includeStyles: document.getElementById('include-styles').checked,
+        includeVariables: document.getElementById('include-variables').checked,
+        includeMetadata: document.getElementById('include-metadata').checked
+      };
+      
+      processedOutput = formatData(exportedData, format, options);
+      document.getElementById('preview').textContent = processedOutput.substring(0, 1000) + (processedOutput.length > 1000 ? '\n\n... (truncated)' : '');
+      document.getElementById('results').style.display = 'block';
+      updateStats(exportedData);
+    }
+
+    document.getElementById('export-btn').addEventListener('click', function() {
+      document.getElementById('loading-state').style.display = 'flex';
+      document.getElementById('main-content').style.display = 'none';
+      parent.postMessage({ pluginMessage: { type: 'export-data' } }, '*');
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', function() {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(processedOutput).then(function() {
+          var btn = document.getElementById('copy-btn');
+          btn.textContent = 'Copied!';
+          setTimeout(function() {
+            btn.textContent = 'Copy to Clipboard';
+          }, 2000);
+        }).catch(function(err) {
+          console.error('Clipboard API failed:', err);
+          fallbackCopyToClipboard();
+        });
+      } else {
+        fallbackCopyToClipboard();
+      }
+    });
+
+    function fallbackCopyToClipboard() {
+      try {
+        // Create a temporary textarea element
+        var textArea = document.createElement('textarea');
+        textArea.value = processedOutput;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        // Try to copy using the older execCommand
+        var successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          var btn = document.getElementById('copy-btn');
+          btn.textContent = 'Copied!';
+          setTimeout(function() {
+            btn.textContent = 'Copy to Clipboard';
+          }, 2000);
+        } else {
+          throw new Error('execCommand failed');
+        }
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Copy failed. Please manually copy the text from the preview area.');
+      }
+    }
+
+    document.getElementById('download-btn').addEventListener('click', function() {
+      var format = document.querySelector('input[name="format"]:checked').value;
+      var filename = 'figma-export.' + (format === 'css' ? 'css' : format === 'js' ? 'js' : 'json');
+      var blob = new Blob([processedOutput], { type: 'text/plain' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    var inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].addEventListener('change', processAndDisplay);
+    }
+
+    window.addEventListener('message', function(event) {
+      var message = event.data.pluginMessage;
+      if (message.type === 'export-complete') {
+        exportedData = message.data;
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        processAndDisplay();
+      } else if (message.type === 'export-error') {
+        alert('Export failed: ' + message.message);
+      }
+    });
+  </script>
+</body>
+</html>
