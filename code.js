@@ -1,322 +1,465 @@
-// Show UI - Figma automatically loads ui.html when specified in manifest
-figma.showUI(__html__, { 
-  width: 480, 
-  height: 600,
-  themeColors: true
-});
+// Figma Plugin: Styles & Variables Exporter
+// Compatible with documentAccess: dynamic-page
 
-// Helper function to convert RGB to hex
-function rgbToHex(r, g, b) {
-  function toHex(n) {
-    var hex = Math.round(n * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  }
-  return '#' + toHex(r) + toHex(g) + toHex(b);
-}
+figma.showUI(__html__, { width: 400, height: 600 });
 
-// Helper function to convert RGBA to CSS format
-function rgbaToCSS(r, g, b, a) {
-  return 'rgba(' + Math.round(r * 255) + ', ' + Math.round(g * 255) + ', ' + Math.round(b * 255) + ', ' + a + ')';
-}
-
-// Helper function to convert style name to design token
-function styleNameToToken(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s\-\_]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/_{2,}/g, '_')
-    .replace(/-{2,}/g, '-')
-    .replace(/^[-_]+|[-_]+$/g, '');
-}
-
-// Extract color styles (updated to include gradients)
-function extractColorStyles() {
-  var colorStyles = figma.getLocalPaintStyles();
-  var result = [];
-  
-  for (var i = 0; i < colorStyles.length; i++) {
-    var style = colorStyles[i];
-    var paint = style.paints[0];
-    
-    if (paint && paint.type === 'SOLID') {
-      // Handle solid colors
-      var color = paint.color;
-      var r = color.r;
-      var g = color.g;
-      var b = color.b;
-      var opacity = paint.opacity || 1;
-      
-      var styleData = {
-        token: styleNameToToken(style.name),
-        name: style.name,
-        description: style.description,
-        type: 'solid',
-        hex: rgbToHex(r, g, b),
-        rgba: rgbaToCSS(r, g, b, opacity),
-        opacity: opacity
-      };
-      
-      result.push(styleData);
-    } else if (paint && (paint.type === 'GRADIENT_LINEAR' || paint.type === 'GRADIENT_RADIAL' || paint.type === 'GRADIENT_ANGULAR' || paint.type === 'GRADIENT_DIAMOND')) {
-      // Handle gradients
-      var gradientStops = [];
-      for (var j = 0; j < paint.gradientStops.length; j++) {
-        var stop = paint.gradientStops[j];
-        gradientStops.push({
-          position: stop.position,
-          color: {
-            hex: rgbToHex(stop.color.r, stop.color.g, stop.color.b),
-            rgba: rgbaToCSS(stop.color.r, stop.color.g, stop.color.b, stop.color.a)
-          }
-        });
-      }
-      
-      var gradientData = {
-        token: styleNameToToken(style.name),
-        name: style.name,
-        description: style.description,
-        type: paint.type.toLowerCase().replace('gradient_', ''),
-        gradientStops: gradientStops,
-        opacity: paint.opacity || 1
-      };
-      
-      // Add CSS gradient string for easy use
-      if (paint.type === 'GRADIENT_LINEAR') {
-        var angle = Math.atan2(paint.gradientTransform[0][1], paint.gradientTransform[0][0]) * 180 / Math.PI;
-        var cssStops = [];
-        for (var k = 0; k < gradientStops.length; k++) {
-          cssStops.push(gradientStops[k].color.rgba + ' ' + (gradientStops[k].position * 100) + '%');
-        }
-        gradientData.css = 'linear-gradient(' + Math.round(angle) + 'deg, ' + cssStops.join(', ') + ')';
-      } else if (paint.type === 'GRADIENT_RADIAL') {
-        var cssStops = [];
-        for (var k = 0; k < gradientStops.length; k++) {
-          cssStops.push(gradientStops[k].color.rgba + ' ' + (gradientStops[k].position * 100) + '%');
-        }
-        gradientData.css = 'radial-gradient(circle, ' + cssStops.join(', ') + ')';
-      }
-      
-      result.push(gradientData);
+figma.ui.onmessage = async (msg) => {
+  if (msg.type === 'export-data') {
+    try {
+      figma.ui.postMessage({ type: 'export-start' });
+      const data = await exportStylesAndVariables();
+      figma.ui.postMessage({ type: 'export-complete', data });
+    } catch (error) {
+      console.error('Export error:', error);
+      figma.ui.postMessage({ 
+        type: 'export-error', 
+        message: error.message || 'An unexpected error occurred during export'
+      });
     }
-  }
-  
-  return result;
-}
-
-// Extract text styles
-function extractTextStyles() {
-  var textStyles = figma.getLocalTextStyles();
-  var result = [];
-  
-  for (var i = 0; i < textStyles.length; i++) {
-    var style = textStyles[i];
-    var styleData = {
-      token: styleNameToToken(style.name),
-      name: style.name,
-      description: style.description,
-      fontFamily: style.fontName.family,
-      fontStyle: style.fontName.style,
-      fontSize: style.fontSize,
-      lineHeight: style.lineHeight,
-      letterSpacing: style.letterSpacing,
-      textCase: style.textCase,
-      textDecoration: style.textDecoration
-    };
-    result.push(styleData);
-  }
-  
-  return result;
-}
-
-// Extract effect styles
-function extractEffectStyles() {
-  var effectStyles = figma.getLocalEffectStyles();
-  var result = [];
-  
-  for (var i = 0; i < effectStyles.length; i++) {
-    var style = effectStyles[i];
-    var effects = [];
-    
-    for (var j = 0; j < style.effects.length; j++) {
-      var effect = style.effects[j];
-      var effectData = {
-        type: effect.type,
-        visible: effect.visible,
-        radius: effect.radius,
-        color: effect.color ? rgbaToCSS(effect.color.r, effect.color.g, effect.color.b, effect.color.a) : null,
-        offset: effect.offset,
-        spread: effect.spread,
-        blendMode: effect.blendMode
-      };
-      effects.push(effectData);
-    }
-    
-    var styleData = {
-      token: styleNameToToken(style.name),
-      name: style.name,
-      description: style.description,
-      effects: effects
-    };
-    
-    result.push(styleData);
-  }
-  
-  return result;
-}
-
-// Extract grid styles
-function extractGridStyles() {
-  var gridStyles = figma.getLocalGridStyles();
-  var result = [];
-  
-  for (var i = 0; i < gridStyles.length; i++) {
-    var style = gridStyles[i];
-    var styleData = {
-      token: styleNameToToken(style.name),
-      name: style.name,
-      description: style.description,
-      grids: style.grids
-    };
-    result.push(styleData);
-  }
-  
-  return result;
-}
-
-// Extract variables
-function extractVariables() {
-  var variables = figma.variables.getLocalVariables();
-  var collections = figma.variables.getLocalVariableCollections();
-  
-  var categorized = {
-    colors: [],
-    numbers: [],
-    strings: [],
-    booleans: []
-  };
-
-  for (var i = 0; i < variables.length; i++) {
-    var variable = variables[i];
-    var collection = null;
-    
-    for (var j = 0; j < collections.length; j++) {
-      if (collections[j].id === variable.variableCollectionId) {
-        collection = collections[j];
-        break;
-      }
-    }
-    
-    var baseData = {
-      name: variable.name,
-      description: variable.description,
-      collection: collection ? collection.name : 'Unknown',
-      scopes: variable.scopes,
-      hiddenFromPublishing: variable.hiddenFromPublishing
-    };
-
-    var values = {};
-    var valueKeys = Object.keys(variable.valuesByMode);
-    
-    for (var k = 0; k < valueKeys.length; k++) {
-      var modeId = valueKeys[k];
-      var value = variable.valuesByMode[modeId];
-      var mode = null;
-      var modeName = 'Default';
-      
-      if (collection && collection.modes) {
-        for (var m = 0; m < collection.modes.length; m++) {
-          if (collection.modes[m].modeId === modeId) {
-            mode = collection.modes[m];
-            modeName = mode.name;
-            break;
-          }
-        }
-      }
-      
-      if (variable.resolvedType === 'COLOR' && typeof value === 'object' && value !== null && 'r' in value) {
-        values[modeName] = {
-          hex: rgbToHex(value.r, value.g, value.b),
-          rgba: rgbaToCSS(value.r, value.g, value.b, value.a)
-        };
-      } else {
-        values[modeName] = value;
-      }
-    }
-
-    var variableData = {
-      token: styleNameToToken(variable.name),
-      name: baseData.name,
-      description: baseData.description,
-      collection: baseData.collection,
-      scopes: baseData.scopes,
-      hiddenFromPublishing: baseData.hiddenFromPublishing,
-      values: values
-    };
-
-    switch (variable.resolvedType) {
-      case 'COLOR':
-        categorized.colors.push(variableData);
-        break;
-      case 'FLOAT':
-        categorized.numbers.push(variableData);
-        break;
-      case 'STRING':
-        categorized.strings.push(variableData);
-        break;
-      case 'BOOLEAN':
-        categorized.booleans.push(variableData);
-        break;
-    }
-  }
-
-  return categorized;
-}
-
-// Main export function
-function exportData() {
-  try {
-    var styles = {
-      colors: extractColorStyles(),
-      textStyles: extractTextStyles(),
-      effects: extractEffectStyles(),
-      grids: extractGridStyles()
-    };
-
-    var variables = extractVariables();
-
-    var exportDataObj = {
-      styles: styles,
-      variables: variables,
-      metadata: {
-        fileName: figma.root.name,
-        exportDate: new Date().toISOString(),
-        totalStyles: styles.colors.length + styles.textStyles.length + styles.effects.length + styles.grids.length,
-        totalVariables: variables.colors.length + variables.numbers.length + variables.strings.length + variables.booleans.length
-      }
-    };
-
-    figma.ui.postMessage({ 
-      type: 'export-complete', 
-      data: exportDataObj 
-    });
-
-  } catch (error) {
-    figma.ui.postMessage({ 
-      type: 'export-error', 
-      message: error.message 
-    });
-  }
-}
-
-// Handle messages from UI
-figma.ui.onmessage = function(msg) {
-  switch (msg.type) {
-    case 'export-data':
-      exportData();
-      break;
-    case 'close-plugin':
-      figma.closePlugin();
-      break;
   }
 };
+
+async function exportStylesAndVariables() {
+  const data = {
+    styles: {
+      colors: [],
+      textStyles: [],
+      effectStyles: [],
+      gridStyles: []
+    },
+    variables: {
+      colors: [],
+      numbers: [],
+      strings: [],
+      booleans: []
+    },
+    metadata: {
+      exportDate: new Date().toISOString(),
+      figmaFileKey: figma.fileKey || 'unknown',
+      fileName: figma.root.name || 'Untitled',
+      pluginVersion: '1.0.0'
+    }
+  };
+
+  try {
+    // Use Promise.all for parallel async operations to improve performance
+    const [
+      paintStyles,
+      textStyles, 
+      effectStyles,
+      gridStyles,
+      variables,
+      collections
+    ] = await Promise.all([
+      figma.getLocalPaintStylesAsync(),
+      figma.getLocalTextStylesAsync(), 
+      figma.getLocalEffectStylesAsync(),
+      figma.getLocalGridStylesAsync(),
+      figma.variables.getLocalVariablesAsync(),
+      figma.variables.getLocalVariableCollectionsAsync()
+    ]);
+
+    // Process color styles
+    for (const style of paintStyles) {
+      try {
+        const colorData = await processColorStyle(style);
+        if (colorData) {
+          data.styles.colors.push(colorData);
+        }
+      } catch (error) {
+        console.warn(`Failed to process color style ${style.name}:`, error);
+      }
+    }
+
+    // Process text styles
+    for (const style of textStyles) {
+      try {
+        const textData = await processTextStyle(style);
+        if (textData) {
+          data.styles.textStyles.push(textData);
+        }
+      } catch (error) {
+        console.warn(`Failed to process text style ${style.name}:`, error);
+      }
+    }
+
+    // Process effect styles
+    for (const style of effectStyles) {
+      try {
+        const effectData = await processEffectStyle(style);
+        if (effectData) {
+          data.styles.effectStyles.push(effectData);
+        }
+      } catch (error) {
+        console.warn(`Failed to process effect style ${style.name}:`, error);
+      }
+    }
+
+    // Process grid styles
+    for (const style of gridStyles) {
+      try {
+        const gridData = await processGridStyle(style);
+        if (gridData) {
+          data.styles.gridStyles.push(gridData);
+        }
+      } catch (error) {
+        console.warn(`Failed to process grid style ${style.name}:`, error);
+      }
+    }
+
+    // Create collection lookup map for variable processing
+    const collectionMap = new Map();
+    collections.forEach(collection => {
+      collectionMap.set(collection.id, collection);
+    });
+
+    // Process variables
+    for (const variable of variables) {
+      try {
+        const varData = await processVariable(variable, collectionMap);
+        if (varData) {
+          switch (varData.resolvedType) {
+            case 'COLOR':
+              data.variables.colors.push(varData);
+              break;
+            case 'FLOAT':
+              data.variables.numbers.push(varData);
+              break;
+            case 'STRING':
+              data.variables.strings.push(varData);
+              break;
+            case 'BOOLEAN':
+              data.variables.booleans.push(varData);
+              break;
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to process variable ${variable.name}:`, error);
+      }
+    }
+
+    // Add collection metadata
+    data.metadata.collections = collections.map(collection => ({
+      id: collection.id,
+      name: collection.name,
+      modes: collection.modes,
+      variableIds: collection.variableIds
+    }));
+
+  } catch (error) {
+    console.error('Error during export process:', error);
+    throw new Error('Failed to export styles and variables. Please ensure the file has loaded completely and try again.');
+  }
+
+  return data;
+}
+
+async function processColorStyle(style) {
+  if (!style.paints || style.paints.length === 0) {
+    return null;
+  }
+
+  const paint = style.paints[0];
+  const result = {
+    id: style.id,
+    key: style.key || null,
+    name: style.name,
+    description: style.description || '',
+    token: generateToken(style.name),
+    type: paint.type.toLowerCase(),
+    source: style.remote ? 'Library Style' : 'Local Style'
+  };
+
+  switch (paint.type) {
+    case 'SOLID':
+      result.hex = rgbToHex(paint.color);
+      result.rgb = paint.color;
+      result.opacity = paint.opacity !== undefined ? paint.opacity : 1;
+      result.css = generateSolidColorCSS(paint);
+      break;
+      
+    case 'GRADIENT_LINEAR':
+    case 'GRADIENT_RADIAL':
+    case 'GRADIENT_ANGULAR':
+    case 'GRADIENT_DIAMOND':
+      result.gradient = {
+        type: paint.type,
+        gradientStops: paint.gradientStops,
+        gradientTransform: paint.gradientTransform
+      };
+      result.css = generateGradientCSS(paint);
+      break;
+      
+    case 'IMAGE':
+      result.imageRef = paint.imageRef || null;
+      result.scaleMode = paint.scaleMode || 'FILL';
+      result.css = 'url(...)'; // Image handling would need additional implementation
+      break;
+      
+    default:
+      result.css = 'transparent';
+  }
+
+  return result;
+}
+
+async function processTextStyle(style) {
+  return {
+    id: style.id,
+    key: style.key || null,
+    name: style.name,
+    description: style.description || '',
+    token: generateToken(style.name),
+    source: style.remote ? 'Library Style' : 'Local Style',
+    fontFamily: style.fontName && style.fontName.family || null,
+    fontWeight: style.fontName && style.fontName.style || null,
+    fontSize: style.fontSize || null,
+    lineHeight: style.lineHeight || null,
+    letterSpacing: style.letterSpacing || null,
+    paragraphSpacing: style.paragraphSpacing || null,
+    textCase: style.textCase || 'ORIGINAL',
+    textDecoration: style.textDecoration || 'NONE',
+    css: generateTextStyleCSS(style)
+  };
+}
+
+async function processEffectStyle(style) {
+  return {
+    id: style.id,
+    name: style.name,
+    key: style.key || null,
+    description: style.description || '',
+    token: generateToken(style.name),
+    remote: style.remote || false,
+    effects: style.effects || [],
+    css: generateEffectCSS(style.effects || [])
+  };
+}
+
+async function processGridStyle(style) {
+  return {
+    id: style.id,
+    name: style.name,
+    key: style.key || null,
+    description: style.description || '',
+    token: generateToken(style.name),
+    remote: style.remote || false,
+    layoutGrids: style.layoutGrids || [],
+    css: generateGridCSS(style.layoutGrids || [])
+  };
+}
+
+async function processVariable(variable, collectionMap) {
+  const collection = collectionMap.get(variable.variableCollectionId);
+  
+  return {
+    id: variable.id,
+    key: variable.key || null,
+    name: variable.name,
+    description: variable.description || '',
+    token: generateToken(variable.name),
+    resolvedType: variable.resolvedType,
+    scopes: variable.scopes || [],
+    source: variable.remote ? 'Library Style' : 'Local Style',
+    variableCollectionId: variable.variableCollectionId,
+    collectionName: (collection && collection.name) || 'Unknown Collection',
+    valuesByMode: variable.valuesByMode || {},
+    css: generateVariableCSS(variable, collection)
+  };
+}
+
+// Utility functions
+function generateToken(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function rgbToHex(rgb) {
+  const toHex = (c) => {
+    const hex = Math.round(c * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return '#' + toHex(rgb.r) + toHex(rgb.g) + toHex(rgb.b);
+}
+
+function generateSolidColorCSS(paint) {
+  const { r, g, b } = paint.color;
+  const opacity = paint.opacity !== undefined ? paint.opacity : 1;
+  
+  if (opacity < 1) {
+    return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${opacity})`;
+  }
+  
+  return rgbToHex(paint.color);
+}
+
+function generateGradientCSS(paint) {
+  if (!paint.gradientStops) return 'transparent';
+  
+  const stops = paint.gradientStops.map(stop => {
+    const color = rgbToHex(stop.color);
+    const opacity = stop.color.a !== undefined ? stop.color.a : 1;
+    const colorValue = opacity < 1 ? 
+      `rgba(${Math.round(stop.color.r * 255)}, ${Math.round(stop.color.g * 255)}, ${Math.round(stop.color.b * 255)}, ${opacity})` :
+      color;
+    return `${colorValue} ${Math.round(stop.position * 100)}%`;
+  }).join(', ');
+
+  switch (paint.type) {
+    case 'GRADIENT_LINEAR':
+      // Calculate angle from gradient transform
+      const angle = paint.gradientTransform ? 
+        Math.atan2(paint.gradientTransform[0][1], paint.gradientTransform[0][0]) * 180 / Math.PI : 0;
+      return `linear-gradient(${Math.round(angle)}deg, ${stops})`;
+      
+    case 'GRADIENT_RADIAL':
+      return `radial-gradient(circle, ${stops})`;
+      
+    case 'GRADIENT_ANGULAR':
+      return `conic-gradient(${stops})`;
+      
+    default:
+      return `linear-gradient(${stops})`;
+  }
+}
+
+function generateTextStyleCSS(style) {
+  const cssProps = [];
+  
+  if (style.fontName && style.fontName.family) {
+    cssProps.push(`font-family: "${style.fontName.family}"`);
+  }
+  
+  if (style.fontName && style.fontName.style) {
+    // Convert Figma font style to CSS
+    const weight = parseFontWeight(style.fontName.style);
+    if (weight) cssProps.push(`font-weight: ${weight}`);
+    
+    if (style.fontName.style.toLowerCase().includes('italic')) {
+      cssProps.push('font-style: italic');
+    }
+  }
+  
+  if (style.fontSize) {
+    cssProps.push(`font-size: ${style.fontSize}px`);
+  }
+  
+  if (style.lineHeight && typeof style.lineHeight === 'object') {
+    if (style.lineHeight.unit === 'PIXELS') {
+      cssProps.push(`line-height: ${style.lineHeight.value}px`);
+    } else if (style.lineHeight.unit === 'PERCENT') {
+      cssProps.push(`line-height: ${style.lineHeight.value}%`);
+    }
+  }
+  
+  if (style.letterSpacing && typeof style.letterSpacing === 'object') {
+    if (style.letterSpacing.unit === 'PIXELS') {
+      cssProps.push(`letter-spacing: ${style.letterSpacing.value}px`);
+    } else if (style.letterSpacing.unit === 'PERCENT') {
+      cssProps.push(`letter-spacing: ${style.letterSpacing.value}%`);
+    }
+  }
+  
+  if (style.textCase && style.textCase !== 'ORIGINAL') {
+    const textTransform = style.textCase.toLowerCase().replace('_', '-');
+    cssProps.push(`text-transform: ${textTransform}`);
+  }
+  
+  if (style.textDecoration && style.textDecoration !== 'NONE') {
+    const decoration = style.textDecoration.toLowerCase().replace('_', '-');
+    cssProps.push(`text-decoration: ${decoration}`);
+  }
+  
+  return cssProps.join('; ');
+}
+
+function parseFontWeight(fontStyle) {
+  const style = fontStyle.toLowerCase();
+  const weightMap = {
+    'thin': '100',
+    'extralight': '200',
+    'light': '300',
+    'regular': '400',
+    'normal': '400',
+    'medium': '500',
+    'semibold': '600',
+    'bold': '700',
+    'extrabold': '800',
+    'black': '900'
+  };
+  
+  for (const [key, value] of Object.entries(weightMap)) {
+    if (style.includes(key)) {
+      return value;
+    }
+  }
+  
+  // Check for numeric weights
+  const numericMatch = style.match(/(\d{3})/);
+  if (numericMatch) {
+    return numericMatch[1];
+  }
+  
+  return '400'; // default
+}
+
+function generateEffectCSS(effects) {
+  if (!effects || effects.length === 0) return '';
+  
+  const shadows = [];
+  
+  effects.forEach(effect => {
+    switch (effect.type) {
+      case 'DROP_SHADOW':
+      case 'INNER_SHADOW':
+        const inset = effect.type === 'INNER_SHADOW' ? 'inset ' : '';
+        const color = effect.color ? rgbToHex(effect.color) : '#000000';
+        const opacity = (effect.color && effect.color.a !== undefined) ? effect.color.a : 1;
+        const colorValue = opacity < 1 ? 
+          `rgba(${Math.round(effect.color.r * 255)}, ${Math.round(effect.color.g * 255)}, ${Math.round(effect.color.b * 255)}, ${opacity})` :
+          color;
+        
+        shadows.push(`${inset}${(effect.offset && effect.offset.x) || 0}px ${(effect.offset && effect.offset.y) || 0}px ${effect.radius || 0}px ${effect.spread || 0}px ${colorValue}`);
+        break;
+    }
+  });
+  
+  return shadows.length > 0 ? `box-shadow: ${shadows.join(', ')}` : '';
+}
+
+function generateGridCSS(layoutGrids) {
+  // Basic grid CSS generation - could be expanded based on needs
+  return layoutGrids.map(grid => {
+    switch (grid.pattern) {
+      case 'COLUMNS':
+        return `display: grid; grid-template-columns: repeat(${grid.count || 12}, 1fr); gap: ${grid.gutterSize || 20}px;`;
+      case 'ROWS':
+        return `display: grid; grid-template-rows: repeat(${grid.count || 12}, 1fr); gap: ${grid.gutterSize || 20}px;`;
+      default:
+        return 'display: grid;';
+    }
+  }).join(' ');
+}
+
+function generateVariableCSS(variable, collection) {
+  const token = `--${generateToken(variable.name)}`;
+  
+  // Get the default mode value
+  const defaultModeId = (collection && collection.defaultModeId) || Object.keys(variable.valuesByMode)[0];
+  const value = variable.valuesByMode[defaultModeId];
+  
+  if (variable.resolvedType === 'COLOR' && value) {
+    return `${token}: ${rgbToHex(value)};`;
+  } else if (variable.resolvedType === 'FLOAT' && value !== undefined) {
+    return `${token}: ${value}px;`;
+  } else if (variable.resolvedType === 'STRING' && value) {
+    return `${token}: "${value}";`;
+  } else if (variable.resolvedType === 'BOOLEAN' && value !== undefined) {
+    return `${token}: ${value};`;
+  }
+  
+  return `${token}: /* ${variable.resolvedType} */;`;
+}

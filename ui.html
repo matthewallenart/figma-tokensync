@@ -382,6 +382,19 @@
       document.getElementById('preview').textContent = processedOutput.substring(0, 1000) + (processedOutput.length > 1000 ? '\n\n... (truncated)' : '');
       document.getElementById('results').style.display = 'block';
       updateStats(exportedData);
+
+      // Update download button text based on format
+      var downloadBtn = document.getElementById('download-btn');
+      switch (format) {
+        case 'css':
+          downloadBtn.textContent = 'Download CSS';
+          break;
+        case 'js':
+          downloadBtn.textContent = 'Download JS';
+          break;
+        default:
+          downloadBtn.textContent = 'Download JSON';
+      }
     }
 
     document.getElementById('export-btn').addEventListener('click', function() {
@@ -391,28 +404,15 @@
     });
 
     document.getElementById('copy-btn').addEventListener('click', function() {
-      // Try modern clipboard API first
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(processedOutput).then(function() {
-          var btn = document.getElementById('copy-btn');
-          btn.textContent = 'Copied!';
-          setTimeout(function() {
-            btn.textContent = 'Copy to Clipboard';
-          }, 2000);
-        }).catch(function(err) {
-          console.error('Clipboard API failed:', err);
-          fallbackCopyToClipboard();
-        });
-      } else {
-        fallbackCopyToClipboard();
-      }
+      // Copy the complete processedOutput, not just the preview
+      fallbackCopyToClipboard();
     });
 
     function fallbackCopyToClipboard() {
       try {
-        // Create a temporary textarea element
+        // Create a temporary textarea element with the FULL exported content
         var textArea = document.createElement('textarea');
-        textArea.value = processedOutput;
+        textArea.value = processedOutput; // This is the complete export
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
         textArea.style.top = '-999999px';
@@ -434,7 +434,7 @@
           throw new Error('execCommand failed');
         }
       } catch (err) {
-        console.error('Fallback copy failed:', err);
+        console.error('Copy failed:', err);
         alert('Copy failed. Please manually copy the text from the preview area.');
       }
     }
