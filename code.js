@@ -154,6 +154,25 @@ async function exportStylesAndVariables() {
   return data;
 }
 
+// Helper function to convert Figma RGB (0-1) to standard RGB (0-255)
+function figmaRgbToStandardRgb(figmaColor) {
+  return {
+    r: Math.round(figmaColor.r * 255),
+    g: Math.round(figmaColor.g * 255),
+    b: Math.round(figmaColor.b * 255)
+  };
+}
+
+// Helper function to convert Figma RGBA to standard RGBA
+function figmaRgbaToStandardRgba(figmaColor) {
+  return {
+    r: Math.round(figmaColor.r * 255),
+    g: Math.round(figmaColor.g * 255),
+    b: Math.round(figmaColor.b * 255),
+    a: figmaColor.a !== undefined ? figmaColor.a : 1
+  };
+}
+
 async function processColorStyle(style) {
   if (!style.paints || style.paints.length === 0) {
     return null;
@@ -161,19 +180,16 @@ async function processColorStyle(style) {
 
   const paint = style.paints[0];
   const result = {
-    id: style.id,
-    key: style.key || null,
     name: style.name,
     description: style.description || '',
     token: generateToken(style.name),
-    type: paint.type.toLowerCase(),
-    source: style.remote ? 'Library Style' : 'Local Style'
+    type: paint.type.toLowerCase()
   };
 
   switch (paint.type) {
     case 'SOLID':
       result.hex = rgbToHex(paint.color);
-      result.rgb = paint.color;
+      result.rgb = figmaRgbToStandardRgb(paint.color); // Convert to 0-255 range
       result.opacity = paint.opacity !== undefined ? paint.opacity : 1;
       result.css = generateSolidColorCSS(paint);
       break;
@@ -184,7 +200,10 @@ async function processColorStyle(style) {
     case 'GRADIENT_DIAMOND':
       result.gradient = {
         type: paint.type,
-        gradientStops: paint.gradientStops,
+        gradientStops: paint.gradientStops.map(stop => ({
+          color: figmaRgbaToStandardRgba(stop.color), // Convert gradient stop colors
+          position: stop.position
+        })),
         gradientTransform: paint.gradientTransform
       };
       result.css = generateGradientCSS(paint);
@@ -205,12 +224,9 @@ async function processColorStyle(style) {
 
 async function processTextStyle(style) {
   return {
-    id: style.id,
-    key: style.key || null,
     name: style.name,
     description: style.description || '',
     token: generateToken(style.name),
-    source: style.remote ? 'Library Style' : 'Local Style',
     fontFamily: style.fontName && style.fontName.family || null,
     fontWeight: style.fontName && style.fontName.style || null,
     fontSize: style.fontSize || null,
@@ -225,12 +241,9 @@ async function processTextStyle(style) {
 
 async function processEffectStyle(style) {
   return {
-    id: style.id,
     name: style.name,
-    key: style.key || null,
     description: style.description || '',
     token: generateToken(style.name),
-    remote: style.remote || false,
     effects: style.effects || [],
     css: generateEffectCSS(style.effects || [])
   };
@@ -238,12 +251,9 @@ async function processEffectStyle(style) {
 
 async function processGridStyle(style) {
   return {
-    id: style.id,
     name: style.name,
-    key: style.key || null,
     description: style.description || '',
     token: generateToken(style.name),
-    remote: style.remote || false,
     layoutGrids: style.layoutGrids || [],
     css: generateGridCSS(style.layoutGrids || [])
   };
@@ -252,18 +262,25 @@ async function processGridStyle(style) {
 async function processVariable(variable, collectionMap) {
   const collection = collectionMap.get(variable.variableCollectionId);
   
+  // Convert color variable values to standard RGB format
+  const convertedValuesByMode = {};
+  for (const [modeId, value] of Object.entries(variable.valuesByMode)) {
+    if (variable.resolvedType === 'COLOR' && value && typeof value === 'object') {
+      convertedValuesByMode[modeId] = figmaRgbaToStandardRgba(value);
+    } else {
+      convertedValuesByMode[modeId] = value;
+    }
+  }
+  
   return {
-    id: variable.id,
-    key: variable.key || null,
     name: variable.name,
     description: variable.description || '',
     token: generateToken(variable.name),
     resolvedType: variable.resolvedType,
     scopes: variable.scopes || [],
-    source: variable.remote ? 'Library Style' : 'Local Style',
     variableCollectionId: variable.variableCollectionId,
     collectionName: (collection && collection.name) || 'Unknown Collection',
-    valuesByMode: variable.valuesByMode || {},
+    valuesByMode: convertedValuesByMode,
     css: generateVariableCSS(variable, collection)
   };
 }
@@ -452,7 +469,12 @@ function generateVariableCSS(variable, collection) {
   const value = variable.valuesByMode[defaultModeId];
   
   if (variable.resolvedType === 'COLOR' && value) {
-    return `${token}: ${rgbToHex(value)};`;
+    // Check if value is already converted (has integer RGB values) or needs conversion
+    const rgbValue = (typeof value.r === 'number' && value.r <= 1) ? 
+      figmaRgbaToStandardRgba(value) : value;
+    
+    const hex = rgbToHex({ r: rgbValue.r / 255, g: rgbValue.g / 255, b: rgbValue.b / 255 });
+    return `${token}: ${hex};`;
   } else if (variable.resolvedType === 'FLOAT' && value !== undefined) {
     return `${token}: ${value}px;`;
   } else if (variable.resolvedType === 'STRING' && value) {
