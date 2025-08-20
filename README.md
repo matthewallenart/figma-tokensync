@@ -5,6 +5,8 @@ Easily export your Figma styles and variables into **JSON**, **CSS Variables**, 
 
 <img width="400" height="600" alt="image" src="https://github.com/user-attachments/assets/3fb0ef92-92f5-4812-b4db-8ab62d42786a" />
 
+Available on the Figma Commmunity Resources
+https://www.figma.com/community/plugin/1536178425944768855/styles-variables-exporter
 
 # ✨ Why Designers & Developers Love It
 
