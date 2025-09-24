@@ -42,6 +42,103 @@
       border-radius: 4px;
       padding: 16px;
       margin-bottom: 16px;
+      position: relative;
+    }
+
+    .settings-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      margin: 0;
+      height: auto;
+      width: auto;
+    }
+
+    .settings-btn:hover {
+      opacity: 1;
+      background: none;
+    }
+
+    .settings-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      display: none;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .settings-content {
+      background: #151515;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 100%;
+      overflow-y: auto;
+      max-width: 350px;
+      margin: 0 auto;
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: auto;
+      height: auto;
+      margin: 0;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-section-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #cc34b3;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     .option-group {
@@ -142,6 +239,8 @@
       font-size: 11px;
       color: #ffffff;
       cursor: pointer;
+      word-wrap: break-word;
+      line-height: 1.3;
     }
 
     button {
@@ -165,6 +264,13 @@
       background: transparent;
       color: #cc34b3;
       border: 1px solid #ffffff;
+    }
+
+    .settings-button {
+      background: #333;
+      color: #ffffff;
+      border: 1px solid #555;
+      margin-top: 10px;
     }
 
     .preview {
@@ -262,6 +368,55 @@
     <div class="subtitle">Export your figma styles and variables to JSON or code format</div>
   </div>
 
+  <div id="settings-panel" class="settings-panel">
+    <div class="settings-content">
+      <div class="settings-header">
+        <div class="settings-title">Export Settings</div>
+        <button class="close-btn" onclick="closeSettings()">&times;</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Style Properties</div>
+        <div class="settings-grid">
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-name" checked>
+            <label for="export-name">Name</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-hex" checked>
+            <label for="export-hex">Hex</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-description" checked>
+            <label for="export-description">Description</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-rgb" checked>
+            <label for="export-rgb">RGB</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-token" checked>
+            <label for="export-token">Token</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-opacity" checked>
+            <label for="export-opacity">Opacity</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-type" checked>
+            <label for="export-type">Type</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="export-css" checked>
+            <label for="export-css">CSS</label>
+          </div>
+        </div>
+      </div>
+
+      <button class="settings-button" onclick="applySettings()">Apply Settings</button>
+    </div>
+  </div>
+
   <div id="loading-state" class="loading" style="display: none;">
     <div class="spinner"></div>
     <span>Extracting data...</span>
@@ -269,8 +424,15 @@
 
   <div id="main-content">
     <div class="export-options">
+      <button class="settings-btn" onclick="openSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      
       <div class="option-group">
-        <div class="option-label">Preview:</div>
+        <div class="option-label">Format:</div>
         <div class="radio-group">
           <div class="radio-item">
             <input type="radio" id="format-json" name="format" value="json" checked>
@@ -325,11 +487,97 @@
     var exportedData = null;
     var processedOutput = '';
 
+    // Export settings
+    var exportSettings = {
+      name: true,
+      description: true,
+      token: true,
+      type: true,
+      hex: true,
+      rgb: true,
+      opacity: true,
+      css: true
+    };
+
+    function openSettings() {
+      console.log('Opening settings...');
+      loadSettings();
+      document.getElementById('settings-panel').style.display = 'block';
+    }
+
+    function closeSettings() {
+      console.log('Closing settings...');
+      document.getElementById('settings-panel').style.display = 'none';
+    }
+
+    function applySettings() {
+      console.log('Applying settings...');
+      saveSettings();
+      closeSettings();
+      if (exportedData) {
+        processAndDisplay();
+      }
+    }
+
+    function loadSettings() {
+      document.getElementById('export-name').checked = exportSettings.name;
+      document.getElementById('export-description').checked = exportSettings.description;
+      document.getElementById('export-token').checked = exportSettings.token;
+      document.getElementById('export-type').checked = exportSettings.type;
+      document.getElementById('export-hex').checked = exportSettings.hex;
+      document.getElementById('export-rgb').checked = exportSettings.rgb;
+      document.getElementById('export-opacity').checked = exportSettings.opacity;
+      document.getElementById('export-css').checked = exportSettings.css;
+    }
+
+    function saveSettings() {
+      exportSettings.name = document.getElementById('export-name').checked;
+      exportSettings.description = document.getElementById('export-description').checked;
+      exportSettings.token = document.getElementById('export-token').checked;
+      exportSettings.type = document.getElementById('export-type').checked;
+      exportSettings.hex = document.getElementById('export-hex').checked;
+      exportSettings.rgb = document.getElementById('export-rgb').checked;
+      exportSettings.opacity = document.getElementById('export-opacity').checked;
+      exportSettings.css = document.getElementById('export-css').checked;
+      console.log('Settings saved:', exportSettings);
+    }
+
+    function filterDataBySettings(data) {
+      var filteredData = JSON.parse(JSON.stringify(data));
+
+      // Filter color styles
+      if (filteredData.styles && filteredData.styles.colors) {
+        filteredData.styles.colors = filteredData.styles.colors.map(function(color) {
+          var filteredColor = {};
+          if (exportSettings.name) filteredColor.name = color.name;
+          if (exportSettings.description) filteredColor.description = color.description;
+          if (exportSettings.token) filteredColor.token = color.token;
+          if (exportSettings.type) filteredColor.type = color.type;
+          if (exportSettings.hex) filteredColor.hex = color.hex;
+          if (exportSettings.rgb) filteredColor.rgb = color.rgb;
+          if (exportSettings.opacity) filteredColor.opacity = color.opacity;
+          if (exportSettings.css) filteredColor.css = color.css;
+          
+          // Always include gradient data if it exists
+          if (color.gradient) filteredColor.gradient = color.gradient;
+          if (color.imageRef) filteredColor.imageRef = color.imageRef;
+          if (color.scaleMode) filteredColor.scaleMode = color.scaleMode;
+          
+          return filteredColor;
+        });
+      }
+
+      return filteredData;
+    }
+
     function formatData(data, format, options) {
       var output = {};
       if (options.includeStyles) output.styles = data.styles;
       if (options.includeVariables) output.variables = data.variables;
       if (options.includeMetadata) output.metadata = data.metadata;
+
+      // Apply export settings filter
+      output = filterDataBySettings(output);
 
       switch (format) {
         case 'json': return JSON.stringify(output, null, 2);
@@ -341,19 +589,172 @@
 
     function generateCSS(data) {
       var css = ':root {\n';
-      if (data.styles && data.styles.colors) {
+      
+      // Color Styles
+      if (data.styles && data.styles.colors && data.styles.colors.length > 0) {
         css += '  /* Color Styles */\n';
         for (var i = 0; i < data.styles.colors.length; i++) {
           var color = data.styles.colors[i];
-          if (color.type === 'solid') {
+          if (color.type === 'solid' && color.hex) {
             css += '  --' + color.token + ': ' + color.hex + ';\n';
           } else if (color.css) {
             css += '  --' + color.token + ': ' + color.css + ';\n';
           }
         }
+        css += '\n';
       }
+
+      // Text Styles
+      if (data.styles && data.styles.textStyles && data.styles.textStyles.length > 0) {
+        css += '  /* Text Styles */\n';
+        for (var i = 0; i < data.styles.textStyles.length; i++) {
+          var textStyle = data.styles.textStyles[i];
+          if (textStyle.fontFamily) {
+            css += '  --font-family-' + textStyle.token + ': "' + textStyle.fontFamily + '";\n';
+          }
+          if (textStyle.fontSize) {
+            css += '  --font-size-' + textStyle.token + ': ' + textStyle.fontSize + 'px;\n';
+          }
+          if (textStyle.fontWeight) {
+            var weight = parseFontWeight(textStyle.fontWeight);
+            css += '  --font-weight-' + textStyle.token + ': ' + weight + ';\n';
+          }
+          if (textStyle.lineHeight) {
+            if (typeof textStyle.lineHeight === 'object' && textStyle.lineHeight.unit) {
+              if (textStyle.lineHeight.unit === 'PIXELS') {
+                css += '  --line-height-' + textStyle.token + ': ' + textStyle.lineHeight.value + 'px;\n';
+              } else if (textStyle.lineHeight.unit === 'PERCENT') {
+                css += '  --line-height-' + textStyle.token + ': ' + (textStyle.lineHeight.value / 100) + ';\n';
+              }
+            } else if (typeof textStyle.lineHeight === 'number') {
+              css += '  --line-height-' + textStyle.token + ': ' + textStyle.lineHeight + 'px;\n';
+            }
+          }
+          if (textStyle.letterSpacing) {
+            if (typeof textStyle.letterSpacing === 'object' && textStyle.letterSpacing.unit) {
+              if (textStyle.letterSpacing.unit === 'PIXELS') {
+                css += '  --letter-spacing-' + textStyle.token + ': ' + textStyle.letterSpacing.value + 'px;\n';
+              } else if (textStyle.letterSpacing.unit === 'PERCENT') {
+                css += '  --letter-spacing-' + textStyle.token + ': ' + textStyle.letterSpacing.value + '%;\n';
+              }
+            } else if (typeof textStyle.letterSpacing === 'number') {
+              css += '  --letter-spacing-' + textStyle.token + ': ' + textStyle.letterSpacing + 'px;\n';
+            }
+          }
+        }
+        css += '\n';
+      }
+
+      // Effect Styles
+      if (data.styles && data.styles.effectStyles && data.styles.effectStyles.length > 0) {
+        css += '  /* Effect Styles */\n';
+        for (var i = 0; i < data.styles.effectStyles.length; i++) {
+          var effectStyle = data.styles.effectStyles[i];
+          if (effectStyle.css) {
+            var effectValue = effectStyle.css.replace('box-shadow: ', '');
+            if (effectValue && effectValue !== '') {
+              css += '  --effect-' + effectStyle.token + ': ' + effectValue + ';\n';
+            }
+          }
+        }
+        css += '\n';
+      }
+
+      // Grid Styles
+      if (data.styles && data.styles.gridStyles && data.styles.gridStyles.length > 0) {
+        css += '  /* Grid Styles */\n';
+        for (var i = 0; i < data.styles.gridStyles.length; i++) {
+          var gridStyle = data.styles.gridStyles[i];
+          if (gridStyle.css) {
+            css += '  --grid-' + gridStyle.token + ': ' + gridStyle.css + ';\n';
+          }
+        }
+        css += '\n';
+      }
+
+      // Color Variables
+      if (data.variables && data.variables.colors && data.variables.colors.length > 0) {
+        css += '  /* Color Variables */\n';
+        for (var i = 0; i < data.variables.colors.length; i++) {
+          var colorVar = data.variables.colors[i];
+          var defaultValue = getDefaultVariableValue(colorVar);
+          if (defaultValue && typeof defaultValue === 'object' && 'r' in defaultValue) {
+            var hex = rgbToHex(defaultValue.r, defaultValue.g, defaultValue.b);
+            css += '  --var-' + colorVar.token + ': ' + hex + ';\n';
+          }
+        }
+        css += '\n';
+      }
+
+      // Number Variables
+      if (data.variables && data.variables.numbers && data.variables.numbers.length > 0) {
+        css += '  /* Number Variables */\n';
+        for (var i = 0; i < data.variables.numbers.length; i++) {
+          var numberVar = data.variables.numbers[i];
+          var defaultValue = getDefaultVariableValue(numberVar);
+          if (typeof defaultValue === 'number') {
+            css += '  --var-' + numberVar.token + ': ' + defaultValue + 'px;\n';
+          }
+        }
+        css += '\n';
+      }
+
+      // String Variables
+      if (data.variables && data.variables.strings && data.variables.strings.length > 0) {
+        css += '  /* String Variables */\n';
+        for (var i = 0; i < data.variables.strings.length; i++) {
+          var stringVar = data.variables.strings[i];
+          var defaultValue = getDefaultVariableValue(stringVar);
+          if (typeof defaultValue === 'string') {
+            css += '  --var-' + stringVar.token + ': "' + defaultValue + '";\n';
+          }
+        }
+        css += '\n';
+      }
+
+      // Boolean Variables
+      if (data.variables && data.variables.booleans && data.variables.booleans.length > 0) {
+        css += '  /* Boolean Variables */\n';
+        for (var i = 0; i < data.variables.booleans.length; i++) {
+          var boolVar = data.variables.booleans[i];
+          var defaultValue = getDefaultVariableValue(boolVar);
+          if (typeof defaultValue === 'boolean') {
+            css += '  --var-' + boolVar.token + ': ' + defaultValue + ';\n';
+          }
+        }
+      }
+
       css += '}';
       return css;
+    }
+
+    function getDefaultVariableValue(variable) {
+      if (!variable.valuesByMode) return null;
+      var modes = Object.keys(variable.valuesByMode);
+      if (modes.length === 0) return null;
+      return variable.valuesByMode[modes[0]];
+    }
+
+    function rgbToHex(r, g, b) {
+      r = Math.round(Math.max(0, Math.min(255, r)));
+      g = Math.round(Math.max(0, Math.min(255, g)));
+      b = Math.round(Math.max(0, Math.min(255, b)));
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    function parseFontWeight(fontStyle) {
+      if (!fontStyle) return '400';
+      var style = fontStyle.toString().toLowerCase();
+      var weightMap = {
+        'thin': '100', 'extralight': '200', 'light': '300', 'regular': '400',
+        'normal': '400', 'medium': '500', 'semibold': '600', 'bold': '700',
+        'extrabold': '800', 'black': '900'
+      };
+      for (var key in weightMap) {
+        if (style.includes(key)) return weightMap[key];
+      }
+      var numericMatch = style.match(/(\d{3})/);
+      return numericMatch ? numericMatch[1] : '400';
     }
 
     function generateJavaScript(data) {
@@ -362,8 +763,14 @@
 
     function updateStats(data) {
       var stats = document.getElementById('stats');
-      var totalStyles = (data.styles.colors || []).length + (data.styles.textStyles || []).length;
-      var totalVariables = (data.variables.colors || []).length + (data.variables.numbers || []).length;
+      var totalStyles = (data.styles.colors || []).length + 
+                       (data.styles.textStyles || []).length + 
+                       (data.styles.effectStyles || []).length + 
+                       (data.styles.gridStyles || []).length;
+      var totalVariables = (data.variables.colors || []).length + 
+                          (data.variables.numbers || []).length + 
+                          (data.variables.strings || []).length + 
+                          (data.variables.booleans || []).length;
       
       stats.innerHTML = 
         '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalStyles + '</div><div class="stat-label">Styles</div></div></div>' +
@@ -405,15 +812,13 @@
     });
 
     document.getElementById('copy-btn').addEventListener('click', function() {
-      // Copy the complete processedOutput, not just the preview
       fallbackCopyToClipboard();
     });
 
     function fallbackCopyToClipboard() {
       try {
-        // Create a temporary textarea element with the FULL exported content
         var textArea = document.createElement('textarea');
-        textArea.value = processedOutput; // This is the complete export
+        textArea.value = processedOutput;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
         textArea.style.top = '-999999px';
@@ -421,7 +826,6 @@
         textArea.focus();
         textArea.select();
         
-        // Try to copy using the older execCommand
         var successful = document.execCommand('copy');
         document.body.removeChild(textArea);
         
@@ -454,17 +858,31 @@
 
     var inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
     for (var i = 0; i < inputs.length; i++) {
-      inputs[i].addEventListener('change', processAndDisplay);
+      inputs[i].addEventListener('change', function() {
+        if (this.name === 'format' || this.id.startsWith('include-')) {
+          processAndDisplay();
+        }
+      });
     }
+
+    // Close settings when clicking outside
+    document.getElementById('settings-panel').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeSettings();
+      }
+    });
 
     window.addEventListener('message', function(event) {
       var message = event.data.pluginMessage;
       if (message.type === 'export-complete') {
         exportedData = message.data;
+        console.log('Received exported data:', exportedData);
         document.getElementById('loading-state').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
         processAndDisplay();
       } else if (message.type === 'export-error') {
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
         alert('Export failed: ' + message.message);
       }
     });
