@@ -312,17 +312,17 @@
 
     .stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 11px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
       margin-bottom: 16px;
     }
 
     .stat-item {
       background: rgba(255, 255, 255, 0.06);
       border-radius: 4px;
-      padding: 16px 8px;
+      padding: 12px 6px;
       text-align: center;
-      height: 59px;
+      height: 55px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -336,18 +336,18 @@
     }
 
     .stat-number {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
       background: linear-gradient(135deg, #cc34b3, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       margin-bottom: 2px;
-      line-height: 30px;
+      line-height: 24px;
     }
 
     .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #ffffff;
     }
 
@@ -573,7 +573,7 @@
     function formatData(data, format, options) {
       var output = {};
       if (options.includeStyles) output.styles = data.styles;
-      if (options.includeVariables) output.variables = data.variables;
+      if (options.includeVariables) output.collections = data.collections;
       if (options.includeMetadata) output.metadata = data.metadata;
 
       // Apply export settings filter
@@ -595,10 +595,8 @@
         css += '  /* Color Styles */\n';
         for (var i = 0; i < data.styles.colors.length; i++) {
           var color = data.styles.colors[i];
-          if (color.type === 'solid' && color.hex) {
-            css += '  --' + color.token + ': ' + color.hex + ';\n';
-          } else if (color.css) {
-            css += '  --' + color.token + ': ' + color.css + ';\n';
+          if (color.value) {
+            css += '  --' + color.token + ': ' + color.value + ';\n';
           }
         }
         css += '\n';
@@ -650,8 +648,8 @@
         css += '  /* Effect Styles */\n';
         for (var i = 0; i < data.styles.effectStyles.length; i++) {
           var effectStyle = data.styles.effectStyles[i];
-          if (effectStyle.css) {
-            var effectValue = effectStyle.css.replace('box-shadow: ', '');
+          if (effectStyle.value) {
+            var effectValue = effectStyle.value.replace('box-shadow: ', '');
             if (effectValue && effectValue !== '') {
               css += '  --effect-' + effectStyle.token + ': ' + effectValue + ';\n';
             }
@@ -665,62 +663,73 @@
         css += '  /* Grid Styles */\n';
         for (var i = 0; i < data.styles.gridStyles.length; i++) {
           var gridStyle = data.styles.gridStyles[i];
-          if (gridStyle.css) {
-            css += '  --grid-' + gridStyle.token + ': ' + gridStyle.css + ';\n';
+          if (gridStyle.grids && gridStyle.grids.length > 0) {
+            // Generate CSS value from grids structure
+            var cssValues = [];
+            for (var j = 0; j < gridStyle.grids.length; j++) {
+              var grid = gridStyle.grids[j];
+              if (grid.pattern === 'columns') {
+                cssValues.push('grid-template-columns: repeat(' + grid.count + ', 1fr); gap: ' + grid.gutter + 'px;');
+              } else if (grid.pattern === 'rows') {
+                cssValues.push('grid-template-rows: repeat(' + grid.count + ', 1fr); gap: ' + grid.gutter + 'px;');
+              }
+            }
+            if (cssValues.length > 0) {
+              css += '  --grid-' + gridStyle.token + ': display: grid; ' + cssValues.join(' ') + '\n';
+            }
           }
         }
         css += '\n';
       }
 
-      // Color Variables
-      if (data.variables && data.variables.colors && data.variables.colors.length > 0) {
-        css += '  /* Color Variables */\n';
-        for (var i = 0; i < data.variables.colors.length; i++) {
-          var colorVar = data.variables.colors[i];
-          var defaultValue = getDefaultVariableValue(colorVar);
-          if (defaultValue && typeof defaultValue === 'object' && 'r' in defaultValue) {
-            var hex = rgbToHex(defaultValue.r, defaultValue.g, defaultValue.b);
-            css += '  --var-' + colorVar.token + ': ' + hex + ';\n';
+      // Collection Variables
+      if (data.collections) {
+        for (var collectionName in data.collections) {
+          var collection = data.collections[collectionName];
+          css += '  /* ' + collectionName + ' Collection */\n';
+          
+          // Color Variables
+          if (collection.variables.colors && collection.variables.colors.length > 0) {
+            for (var i = 0; i < collection.variables.colors.length; i++) {
+              var colorVar = collection.variables.colors[i];
+              if (colorVar.value) {
+                css += '  --' + colorVar.token + ': ' + colorVar.value + ';\n';
+              }
+            }
           }
-        }
-        css += '\n';
-      }
-
-      // Number Variables
-      if (data.variables && data.variables.numbers && data.variables.numbers.length > 0) {
-        css += '  /* Number Variables */\n';
-        for (var i = 0; i < data.variables.numbers.length; i++) {
-          var numberVar = data.variables.numbers[i];
-          var defaultValue = getDefaultVariableValue(numberVar);
-          if (typeof defaultValue === 'number') {
-            css += '  --var-' + numberVar.token + ': ' + defaultValue + 'px;\n';
+          
+          // Number Variables
+          if (collection.variables.numbers && collection.variables.numbers.length > 0) {
+            for (var i = 0; i < collection.variables.numbers.length; i++) {
+              var numberVar = collection.variables.numbers[i];
+              if (numberVar.value !== undefined) {
+                var unit = (typeof numberVar.value === 'number') ? 'px' : '';
+                css += '  --' + numberVar.token + ': ' + numberVar.value + unit + ';\n';
+              }
+            }
           }
-        }
-        css += '\n';
-      }
-
-      // String Variables
-      if (data.variables && data.variables.strings && data.variables.strings.length > 0) {
-        css += '  /* String Variables */\n';
-        for (var i = 0; i < data.variables.strings.length; i++) {
-          var stringVar = data.variables.strings[i];
-          var defaultValue = getDefaultVariableValue(stringVar);
-          if (typeof defaultValue === 'string') {
-            css += '  --var-' + stringVar.token + ': "' + defaultValue + '";\n';
+          
+          // String Variables
+          if (collection.variables.strings && collection.variables.strings.length > 0) {
+            for (var i = 0; i < collection.variables.strings.length; i++) {
+              var stringVar = collection.variables.strings[i];
+              if (stringVar.value) {
+                css += '  --' + stringVar.token + ': "' + stringVar.value + '";\n';
+              }
+            }
           }
-        }
-        css += '\n';
-      }
-
-      // Boolean Variables
-      if (data.variables && data.variables.booleans && data.variables.booleans.length > 0) {
-        css += '  /* Boolean Variables */\n';
-        for (var i = 0; i < data.variables.booleans.length; i++) {
-          var boolVar = data.variables.booleans[i];
-          var defaultValue = getDefaultVariableValue(boolVar);
-          if (typeof defaultValue === 'boolean') {
-            css += '  --var-' + boolVar.token + ': ' + defaultValue + ';\n';
+          
+          // Boolean Variables
+          if (collection.variables.booleans && collection.variables.booleans.length > 0) {
+            for (var i = 0; i < collection.variables.booleans.length; i++) {
+              var boolVar = collection.variables.booleans[i];
+              if (boolVar.value !== undefined) {
+                css += '  --' + boolVar.token + ': ' + boolVar.value + ';\n';
+              }
+            }
           }
+          
+          css += '\n';
         }
       }
 
@@ -758,7 +767,79 @@
     }
 
     function generateJavaScript(data) {
-      return '// Figma Export\nexport const designTokens = ' + JSON.stringify(data, null, 2) + ';';
+      var js = '// Figma Design Tokens Export\n\n';
+      
+      // Export styles
+      if (data.styles) {
+        js += '// Styles\n';
+        js += 'export const styles = ' + JSON.stringify(data.styles, null, 2) + ';\n\n';
+      }
+      
+      // Export collections with flattened structure for easier use
+      if (data.collections) {
+        js += '// Collections\n';
+        js += 'export const collections = ' + JSON.stringify(data.collections, null, 2) + ';\n\n';
+        
+        // Create flattened tokens for easier access
+        js += '// Flattened Tokens (for easier access)\n';
+        js += 'export const tokens = {\n';
+        
+        for (var collectionName in data.collections) {
+          var collection = data.collections[collectionName];
+          var collectionKey = collectionName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          js += '  ' + collectionKey + ': {\n';
+          
+          // Add color variables
+          if (collection.variables.colors && collection.variables.colors.length > 0) {
+            js += '    colors: {\n';
+            for (var i = 0; i < collection.variables.colors.length; i++) {
+              var colorVar = collection.variables.colors[i];
+              js += '      ' + colorVar.token.replace(/-/g, '_') + ': "' + colorVar.value + '",\n';
+            }
+            js += '    },\n';
+          }
+          
+          // Add number variables  
+          if (collection.variables.numbers && collection.variables.numbers.length > 0) {
+            js += '    numbers: {\n';
+            for (var i = 0; i < collection.variables.numbers.length; i++) {
+              var numberVar = collection.variables.numbers[i];
+              js += '      ' + numberVar.token.replace(/-/g, '_') + ': ' + numberVar.value + ',\n';
+            }
+            js += '    },\n';
+          }
+          
+          // Add string variables
+          if (collection.variables.strings && collection.variables.strings.length > 0) {
+            js += '    strings: {\n';
+            for (var i = 0; i < collection.variables.strings.length; i++) {
+              var stringVar = collection.variables.strings[i];
+              js += '      ' + stringVar.token.replace(/-/g, '_') + ': "' + stringVar.value + '",\n';
+            }
+            js += '    },\n';
+          }
+          
+          // Add boolean variables
+          if (collection.variables.booleans && collection.variables.booleans.length > 0) {
+            js += '    booleans: {\n';
+            for (var i = 0; i < collection.variables.booleans.length; i++) {
+              var boolVar = collection.variables.booleans[i];
+              js += '      ' + boolVar.token.replace(/-/g, '_') + ': ' + boolVar.value + ',\n';
+            }
+            js += '    },\n';
+          }
+          
+          js += '  },\n';
+        }
+        
+        js += '};\n\n';
+      }
+      
+      // Export complete data object
+      js += '// Complete Export Data\n';
+      js += 'export const designTokens = ' + JSON.stringify(data, null, 2) + ';\n';
+      
+      return js;
     }
 
     function updateStats(data) {
@@ -767,14 +848,25 @@
                        (data.styles.textStyles || []).length + 
                        (data.styles.effectStyles || []).length + 
                        (data.styles.gridStyles || []).length;
-      var totalVariables = (data.variables.colors || []).length + 
-                          (data.variables.numbers || []).length + 
-                          (data.variables.strings || []).length + 
-                          (data.variables.booleans || []).length;
+      
+      // Count variables from collections
+      var totalVariables = 0;
+      var totalCollections = 0;
+      if (data.collections) {
+        totalCollections = Object.keys(data.collections).length;
+        for (var collectionName in data.collections) {
+          var collection = data.collections[collectionName];
+          totalVariables += (collection.variables.colors || []).length + 
+                           (collection.variables.numbers || []).length + 
+                           (collection.variables.strings || []).length + 
+                           (collection.variables.booleans || []).length;
+        }
+      }
       
       stats.innerHTML = 
         '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalStyles + '</div><div class="stat-label">Styles</div></div></div>' +
-        '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalVariables + '</div><div class="stat-label">Variables</div></div></div>';
+        '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalVariables + '</div><div class="stat-label">Variables</div></div></div>' +
+        '<div class="stat-item"><div class="stat-content"><div class="stat-number">' + totalCollections + '</div><div class="stat-label">Collections</div></div></div>';
     }
 
     function processAndDisplay() {
